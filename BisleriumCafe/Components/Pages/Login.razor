@@ -20,11 +20,12 @@
                 <span class="oi oi-account-login"></span> Login
             </button>
         </form>
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            @_errorMessage
+        }
     </div>
-    @if (!string.IsNullOrEmpty(_errorMessage))
-    {
-        <p>@_errorMessage</p>
-    }
+    
 
 </div>
 
@@ -32,7 +33,12 @@
     public string _password { get; set; }
     public string rolePassword { get; set; }
     private string _errorMessage { get; set; }
+    private GlobalState _globalState{ get; set; }
 
+    protected override void OnInitialized()
+    {
+        _globalState = new GlobalState();
+    }
 
     private void HandleSubmit()
     {
@@ -40,11 +46,11 @@
         {
             _errorMessage = "";
             rolePassword = AuthService.Login(_password);
-            NavManager.NavigateTo(rolePassword == Utils.GetAdminPassword() ? "/dashboard" : rolePassword == Utils.GetStaffPassword() ? "/order" : "/");
+            NavManager.NavigateTo(rolePassword == _globalState.adminPassword ? "/dashboard" : rolePassword == _globalState.staffPassword ? "/order" : "/");
         }
         catch (Exception e)
         {
-            var _errorMessage = "Error, Please Reload!";
+            _errorMessage = e.Message;
             Console.WriteLine(_errorMessage);
         }
     }

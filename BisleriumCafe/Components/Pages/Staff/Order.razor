@@ -1,35 +1,62 @@
 ﻿@page "/order"
 @layout BisleriumCafe.Components.Layout.Staff.StaffLayout
 
-<div class="coffee-dropdown">
-    <label for="coffeeSelection">Select a Coffee:</label>
-    <select id="coffeeSelection" @bind="_selectedCoffee">
-        @foreach (var coffee in CoffeeOptions)
-        {
-            <option value="@coffee">@coffee</option>
-        }
-    </select>
+<!-- CoffeeMenu.razor -->
 
-    <p>You selected: @_selectedCoffee</p>
+<div class="coffee-menu">
+    @foreach (var coffee in CoffeeList)
+    {
+        <div class="coffee-box">
+            <h4>@coffee.Name</h4>
+            <p>Price: $@coffee.Price</p>
+            <button @onclick="() => AddToCart(coffee)">Add to Cart</button>
+            <div class="quantity">
+                <span @onclick="() => IncreaseQuantity(coffee)">+</span>
+                <span>@coffee.Quantity</span>
+                <span @onclick="() => DecreaseQuantity(coffee)">-</span>
+            </div>
+        </div>
+    }
 </div>
 
 @code {
-    private string _selectedCoffee;
-
-    // Coffee options from the JSON file or any other source
-    private List<string> CoffeeOptions = new List<string>
+    // Coffee model class
+    public class Coffee
     {
-        "espresso",
-        "doppio",
-        "americano",
-        "cappuccino",
-        "latte",
-        "mocha",
-        "cortado",
-        "flat white",
-        "macchiato",
-        "con panna",
-        "affogato",
-        "irish coffee"
+        public string Name { get; set; }
+        public decimal Price { get; set; }
+        public int Quantity { get; set; }
+    }
+
+    // List of available coffees
+    private List<Coffee> CoffeeList = new List<Coffee>
+    {
+        new Coffee { Name = "Espresso", Price = 2.5M },
+        new Coffee { Name = "Latte", Price = 3.0M },
+        new Coffee { Name = "Cappuccino", Price = 3.5M },
+        // Add more coffees as needed
     };
+
+    private void AddToCart(Coffee coffee)
+    {
+        // Add coffee to the shopping cart or perform other actions
+        // You can implement your shopping cart logic here
+        // For simplicity, just increment the quantity in this example
+        coffee.Quantity++;
+    }
+
+    private void IncreaseQuantity(Coffee coffee)
+    {
+        // Increase the quantity when the + button is clicked
+        coffee.Quantity++;
+    }
+
+    private void DecreaseQuantity(Coffee coffee)
+    {
+        // Decrease the quantity when the - button is clicked
+        if (coffee.Quantity > 0)
+        {
+            coffee.Quantity--;
+        }
+    }
 }

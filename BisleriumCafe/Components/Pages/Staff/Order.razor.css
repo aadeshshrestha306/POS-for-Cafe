@@ -1,21 +1,29 @@
-.coffee-dropdown {
+/* Add this CSS to your styles.css or your preferred stylesheet */
+
+.coffee-menu {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+}
+
+.coffee-box {
+    width: 30%;
     margin: 20px;
-}
-
-label {
-    display: block;
-    margin-bottom: 8px;
-}
-
-select {
-    width: 100%;
-    padding: 8px;
-    font-size: 16px;
+    padding: 15px;
     border: 1px solid #ccc;
-    border-radius: 5px;
-    outline: none;
+    border-radius: 8px;
+    text-align: center;
 }
 
-p {
+.quantity {
+    display: flex;
+    justify-content: space-between;
     margin-top: 10px;
-    font-weight: bold;
+}
+
+    .quantity span {
+        cursor: pointer;
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
