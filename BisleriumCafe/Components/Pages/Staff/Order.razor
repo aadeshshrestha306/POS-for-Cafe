@@ -1,0 +1,35 @@
+﻿@page "/order"
+@layout BisleriumCafe.Components.Layout.Staff.StaffLayout
+
+<div class="coffee-dropdown">
+    <label for="coffeeSelection">Select a Coffee:</label>
+    <select id="coffeeSelection" @bind="_selectedCoffee">
+        @foreach (var coffee in CoffeeOptions)
+        {
+            <option value="@coffee">@coffee</option>
+        }
+    </select>
+
+    <p>You selected: @_selectedCoffee</p>
+</div>
+
+@code {
+    private string _selectedCoffee;
+
+    // Coffee options from the JSON file or any other source
+    private List<string> CoffeeOptions = new List<string>
+    {
+        "espresso",
+        "doppio",
+        "americano",
+        "cappuccino",
+        "latte",
+        "mocha",
+        "cortado",
+        "flat white",
+        "macchiato",
+        "con panna",
+        "affogato",
+        "irish coffee"
+    };
+}

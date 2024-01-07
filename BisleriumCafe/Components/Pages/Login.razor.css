@@ -1,14 +1,14 @@
 ﻿.login-body {
     display: flex;
     align-items: center;
-    justify-content: center; /* Center the form horizontally */
+    justify-content: normal; /* Center the form horizontally */
     height: 100vh;
 }
 
 .form-login {
     width: 100%;
     max-width: 400px;
-    padding: 10px;
+    padding: 15px;
     margin: auto;
     border: 1px solid #ccc; /* Add a border */
     border-radius: 10px; /* Add border-radius for rounded corners */
@@ -24,12 +24,13 @@
     position: relative;
 }
 
+
 .form-login .password {
     margin-bottom: 20px;
 }
 
     .form-login .password input {
-        padding: 5px; /* Reduce padding to make it smaller */
+        padding: 8px; /* Reduce padding to make it smaller */
         border-bottom: 1px solid #ccc; /* Add a bottom border for the input */
         outline: none;
         font-size: 14px;

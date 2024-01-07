@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BisleriumCafe.Components.Models;
 
-namespace BisleriumCafe.Components.Models
+namespace BisleriumCafe.Components.Services
 {
     public static class AuthService
     {

@@ -1,0 +1,46 @@
+/* Add this CSS to your styles.css or your preferred stylesheet */
+
+.logout-body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.form-logout {
+    max-width: 300px;
+    width: 100%;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    background-color: #fff;
+    text-align: center;
+}
+
+    .form-logout h3 {
+        margin-bottom: 20px;
+        color: #333;
+    }
+
+.options-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+    .options-container button {
+        width: 100%;
+        padding: 10px;
+        font-size: 16px;
+        margin-bottom: 10px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        background-color: #007bff; /* Blue color for both buttons */
+        color: #fff;
+    }
+
+        .options-container button:hover {
+            opacity: 0.8;
+        }

@@ -4,8 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using BisleriumCafe.Components.Models;
 
-namespace BisleriumCafe.Components.Models
+namespace BisleriumCafe.Components.Services
 {
     public static class UsersService
     {

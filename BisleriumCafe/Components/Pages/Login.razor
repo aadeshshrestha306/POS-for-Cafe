@@ -1,6 +1,8 @@
 ﻿@page "/"
 @using BisleriumCafe.Components.Models
+@using BisleriumCafe.Components.Services
 @inject NavigationManager NavManager
+@layout BisleriumCafe.Components.Layout.EmptyLayout
 
 <div class="login-body">
     <div class="form-login">
@@ -38,7 +40,7 @@
         {
             _errorMessage = "";
             rolePassword = AuthService.Login(_password);
-            NavManager.NavigateTo(rolePassword == Utils.GetAdminPassword() ? "/weather" : rolePassword == Utils.GetStaffPassword() ? "/counter" : "/");
+            NavManager.NavigateTo(rolePassword == Utils.GetAdminPassword() ? "/dashboard" : rolePassword == Utils.GetStaffPassword() ? "/order" : "/");
         }
         catch (Exception e)
         {
