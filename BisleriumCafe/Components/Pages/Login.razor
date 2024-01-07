@@ -1,8 +1,49 @@
-﻿<h3>Log In to Bislerium Cafe</h3>
+﻿@page "/"
+@using BisleriumCafe.Components.Models
+@inject NavigationManager NavManager
 
-@page "/default"
+<div class="login-body">
+    <div class="form-login">
+        <form class="text-center" @onsubmit="HandleSubmit">
+            <h3>Login</h3>
+            <div class="form-floating">
+                <input type="password" class="form-control password" @bind="_password" placeholder="password" />
+                <label for="floatingInput">Password</label>
+            </div>
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <AlertMessage Type="danger" Message="@_errorMessage" />
+            }
+            <button class="w-100 btn btn-lg btn-primary" type="submit">
+                <span class="oi oi-account-login"></span> Login
+            </button>
+        </form>
+    </div>
+    @if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <p>@_errorMessage</p>
+    }
 
+</div>
 
 @code {
+    public string _password { get; set; }
+    public string rolePassword { get; set; }
+    private string _errorMessage { get; set; }
 
+
+    private void HandleSubmit()
+    {
+        try
+        {
+            _errorMessage = "";
+            rolePassword = AuthService.Login(_password);
+            NavManager.NavigateTo(rolePassword == Utils.GetAdminPassword() ? "/weather" : rolePassword == Utils.GetStaffPassword() ? "/counter" : "/");
+        }
+        catch (Exception e)
+        {
+            var _errorMessage = "Error, Please Reload!";
+            Console.WriteLine(_errorMessage);
+        }
+    }
 }
