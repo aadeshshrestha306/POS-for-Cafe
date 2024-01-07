@@ -10,7 +10,7 @@ namespace BisleriumCafe.Components.Models
     {
         public static string GetBasePath()
         {
-            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Components", "AppData");
+            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Components", "Data");
         } 
         public static string GetAppUsersFilePath()
         {

@@ -40,10 +40,10 @@
             rolePassword = AuthService.Login(_password);
             NavManager.NavigateTo(rolePassword == Utils.GetAdminPassword() ? "/weather" : rolePassword == Utils.GetStaffPassword() ? "/counter" : "/");
         }
-        catch(Exception e)
+        catch (Exception e)
         {
-            _errorMessage = e.Message;
-            Console.WriteLine(e);
+            var _errorMessage = "Error, Please Reload!";
+            Console.WriteLine(_errorMessage);
         }
     }
 }
