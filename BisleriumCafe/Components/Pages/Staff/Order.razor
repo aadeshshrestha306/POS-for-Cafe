@@ -37,6 +37,7 @@
     }
 </div>
 
+
 <div class="order-summary">
     <h3>Order Summary</h3>
     <table>
@@ -70,6 +71,7 @@
     <p>Total: @CalculateTotal()</p>
 </div>
 
+
 <div class="user-validation-form">
     <h3>User Validation</h3>
     <form @onsubmit="ValidateUser">
@@ -91,6 +93,10 @@
     private bool showNoUserAlert = false;
     private GlobalState _globalState { get; set; }
     private string _errorMessage { get; set; }
+    private string Number { get; set; }
+    private List<CoffeeItem> Coffees{ get; set; }
+    private DateTime Date { get; set; }
+    private List<AddinItem> Addins { get; set; }
 
     protected override void OnInitialized()
     {
@@ -205,6 +211,7 @@
             File.WriteAllText(Utils.GetOrderFilePath(), orderJson);
 
             ClearOrder();
+
         }
         catch (Exception ex)
         {
@@ -232,7 +239,6 @@
 
         return orderedCoffees;
     }
-
     private List<AddinItem> GetOrderedAddins()
     {
         var orderedAddins = new List<AddinItem>();
@@ -259,4 +265,5 @@
         CoffeeQuantities.Clear();
         AddinQuantities.Clear();
     }
+
 }
