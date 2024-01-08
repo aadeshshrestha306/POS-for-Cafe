@@ -11,7 +11,7 @@ namespace BisleriumCafe.Components.Models
     {
         public static string GetBasePath()
         {
-            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Components", "Data");
+            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data");
         } 
         public static string GetAppUsersFilePath()
         {
@@ -23,7 +23,16 @@ namespace BisleriumCafe.Components.Models
         }
         public static string GetAddinsFilePath()
         {
-            return Path.Combine(GetBasePath(), "addins.json");
+            return Path.Combine(GetBasePath(), "addin.json");
+        }
+        public static string GetMemberFilePath()
+        {
+            return Path.Combine(GetBasePath(), "member.json");
+        }
+        
+        public static string GetOrderFilePath()
+        {
+            return Path.Combine(GetBasePath(), "order.json");
         }
         public static string GetStaffPassword()
         {

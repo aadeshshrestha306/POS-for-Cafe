@@ -1,62 +1,262 @@
 ﻿@page "/order"
 @layout BisleriumCafe.Components.Layout.Staff.StaffLayout
+@using BisleriumCafe.Components.Models
+@using BisleriumCafe.Components.Services
+@using System.Text.Json
 
-<!-- CoffeeMenu.razor -->
+<h3>Coffee Menu</h3>
 
 <div class="coffee-menu">
     @foreach (var coffee in CoffeeList)
     {
         <div class="coffee-box">
             <h4>@coffee.Name</h4>
-            <p>Price: $@coffee.Price</p>
-            <button @onclick="() => AddToCart(coffee)">Add to Cart</button>
+            <p>Price: @coffee.Price</p>
             <div class="quantity">
-                <span @onclick="() => IncreaseQuantity(coffee)">+</span>
-                <span>@coffee.Quantity</span>
                 <span @onclick="() => DecreaseQuantity(coffee)">-</span>
+                <span>@GetQuantity(coffee)</span>
+                <span @onclick="() => IncreaseQuantity(coffee)">+</span>
             </div>
         </div>
     }
 </div>
 
-@code {
-    // Coffee model class
-    public class Coffee
+<div class="addins">
+    <h3>Add-ins</h3>
+    @foreach (var addin in AddinsList)
     {
-        public string Name { get; set; }
-        public decimal Price { get; set; }
-        public int Quantity { get; set; }
+        <div class="addin-box">
+            <h4>@addin.Name</h4>
+            <p>Price: @addin.Price</p>
+            <div class="quantity">
+                <span @onclick="() => DecreaseAddinQuantity(addin)">-</span>
+                <span>@GetAddinQuantity(addin)</span>
+                <span @onclick="() => IncreaseAddinQuantity(addin)">+</span>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="order-summary">
+    <h3>Order Summary</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Quantity</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var coffee in CoffeeList)
+            {
+                <tr>
+                    <td>@coffee.Name</td>
+                    <td>@GetQuantity(coffee)</td>
+                    <td>@(GetQuantity(coffee) * coffee.Price)</td>
+                </tr>
+            }
+
+            @foreach (var addin in AddinsList)
+            {
+                <tr>
+                    <td>@addin.Name</td>
+                    <td>@GetAddinQuantity(addin)</td>
+                    <td>@(GetAddinQuantity(addin) * addin.Price)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <p>Total: @CalculateTotal()</p>
+</div>
+
+<div class="user-validation-form">
+    <h3>User Validation</h3>
+    <form @onsubmit="ValidateUser">
+        <label for="phoneNumber">Enter Phone Number:</label>
+        <input type="text" id="phoneNumber" @bind="userPhoneNumber" />
+        <button type="submit">Validate User</button>
+    </form>
+</div>
+
+@code {
+    private List<Coffee> CoffeeList;
+    private Dictionary<string, int> CoffeeQuantities = new Dictionary<string, int>();
+    private List<Member> Members;
+    private List<Addin> AddinsList;
+    private Dictionary<string, int> AddinQuantities = new Dictionary<string, int>();
+    private string userPhoneNumber = "";
+    private string userPassword = "";
+    private bool userFound = false;
+    private bool showNoUserAlert = false;
+    private GlobalState _globalState { get; set; }
+    private string _errorMessage { get; set; }
+
+    protected override void OnInitialized()
+    {
+        _globalState = new GlobalState();
+
+        try
+        {
+            string coffeeJson = File.ReadAllText(Utils.GetCoffeeFilePath());
+            CoffeeList = JsonSerializer.Deserialize<List<Coffee>>(coffeeJson);
+
+            // Initialize the quantity for each coffee to zero
+            foreach (var coffee in CoffeeList)
+            {
+                CoffeeQuantities[coffee.Name] = 0;
+            }
+
+            string addinsJson = File.ReadAllText(Utils.GetAddinsFilePath());
+            AddinsList = JsonSerializer.Deserialize<List<Addin>>(addinsJson);
+
+            // Initialize the quantity for each add-in to zero
+            foreach (var addin in AddinsList)
+            {
+                AddinQuantities[addin.Name] = 0;
+            }
+
+            string membersJson = File.ReadAllText(Utils.GetMemberFilePath());
+            Members = JsonSerializer.Deserialize<List<Member>>(membersJson);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading data: {ex.Message}");
+            CoffeeList = new List<Coffee>();
+            AddinsList = new List<Addin>();
+            Members = new List<Member>();
+        }
     }
 
-    // List of available coffees
-    private List<Coffee> CoffeeList = new List<Coffee>
+    private void ValidateUser()
     {
-        new Coffee { Name = "Espresso", Price = 2.5M },
-        new Coffee { Name = "Latte", Price = 3.0M },
-        new Coffee { Name = "Cappuccino", Price = 3.5M },
-        // Add more coffees as needed
-    };
+        userFound = Members.Any(member => member.number == userPhoneNumber);
+        showNoUserAlert = !userFound;
+        SubmitOrder();
+    }
 
-    private void AddToCart(Coffee coffee)
+    private int GetQuantity(Coffee coffee)
     {
-        // Add coffee to the shopping cart or perform other actions
-        // You can implement your shopping cart logic here
-        // For simplicity, just increment the quantity in this example
-        coffee.Quantity++;
+        return CoffeeQuantities.ContainsKey(coffee.Name) ? CoffeeQuantities[coffee.Name] : 0;
     }
 
     private void IncreaseQuantity(Coffee coffee)
     {
-        // Increase the quantity when the + button is clicked
-        coffee.Quantity++;
+        CoffeeQuantities[coffee.Name]++;
     }
 
     private void DecreaseQuantity(Coffee coffee)
     {
-        // Decrease the quantity when the - button is clicked
-        if (coffee.Quantity > 0)
+        if (CoffeeQuantities[coffee.Name] > 0)
         {
-            coffee.Quantity--;
+            CoffeeQuantities[coffee.Name]--;
         }
+    }
+
+    private decimal CalculateTotal()
+    {
+        decimal total = 0;
+
+        foreach (var coffee in CoffeeList)
+        {
+            total += GetQuantity(coffee) * coffee.Price;
+        }
+
+        foreach (var addin in AddinsList)
+        {
+            total += GetAddinQuantity(addin) * addin.Price;
+        }
+
+        return total;
+    }
+
+    private int GetAddinQuantity(Addin addin)
+    {
+        return AddinQuantities.ContainsKey(addin.Name) ? AddinQuantities[addin.Name] : 0;
+    }
+
+    private void IncreaseAddinQuantity(Addin addin)
+    {
+        AddinQuantities[addin.Name]++;
+    }
+
+    private void DecreaseAddinQuantity(Addin addin)
+    {
+        if (AddinQuantities[addin.Name] > 0)
+        {
+            AddinQuantities[addin.Name]--;
+        }
+    }
+
+    private void SubmitOrder()
+    {
+        try
+        {
+            var order = new Order
+                {
+                    Number = userPhoneNumber,
+                    Coffees = GetOrderedCoffees(),
+                    Addins = GetOrderedAddins(),
+                    Date = DateTime.Now
+                };
+
+            // Convert the order object to JSON
+            string orderJson = JsonSerializer.Serialize(new { order });
+            File.WriteAllText(Utils.GetOrderFilePath(), orderJson);
+
+            ClearOrder();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error submitting order: {ex.Message}");
+        }
+    }
+
+    private List<CoffeeItem> GetOrderedCoffees()
+    {
+        var orderedCoffees = new List<CoffeeItem>();
+
+        foreach (var coffee in CoffeeList)
+        {
+            if (CoffeeQuantities.TryGetValue(coffee.Name, out int quantity) && quantity > 0)
+            {
+                var coffeeObject = new CoffeeItem
+                    {
+                        Name = coffee.Name,
+                        Quantity = quantity
+                    };
+
+                orderedCoffees.Add(coffeeObject);
+            }
+        }
+
+        return orderedCoffees;
+    }
+
+    private List<AddinItem> GetOrderedAddins()
+    {
+        var orderedAddins = new List<AddinItem>();
+
+        foreach (var addin in AddinsList)
+        {
+            if (AddinQuantities.TryGetValue(addin.Name, out int quantity) && quantity > 0)
+            {
+                var addinObject = new AddinItem
+                    {
+                        Name = addin.Name,
+                        Quantity = quantity
+                    };
+
+                orderedAddins.Add(addinObject);
+            }
+        }
+
+        return orderedAddins;
+    }
+
+    private void ClearOrder()
+    {
+        CoffeeQuantities.Clear();
+        AddinQuantities.Clear();
     }
 }
