@@ -1,0 +1,38 @@
+[
+  {
+    "Name": "Espresso",
+    "Price": 60
+  },
+  {
+    "Name": "Latte",
+    "Price": 70
+  },
+  {
+    "Name": "Cappuccino",
+    "Price": 65
+  },
+  {
+    "Name": "Americano",
+    "Price": 100
+  },
+  {
+    "Name": "Mocha",
+    "Price": 120
+  },
+  {
+    "Name": "Cortado",
+    "Price": 130
+  },
+  {
+    "Name": "Flat White",
+    "Price": 75
+  },
+  {
+    "Name": "Macchiato",
+    "Price": 100
+  },
+  {
+    "Name": "Irish Coffee",
+    "Price": 150
+  }
+]

@@ -1,8 +1,57 @@
-﻿<h3>Log In to Bislerium Cafe</h3>
+﻿@page "/"
+@using BisleriumCafe.Components.Models
+@using BisleriumCafe.Components.Services
+@inject NavigationManager NavManager
+@layout BisleriumCafe.Components.Layout.EmptyLayout
 
-@page "/default"
+<div class="login-body">
+    <div class="form-login">
+        <form class="text-center" @onsubmit="HandleSubmit">
+            <h3>Login</h3>
+            <div class="form-floating">
+                <input type="password" class="form-control password" @bind="_password" placeholder="password" />
+                <label for="floatingInput">Password</label>
+            </div>
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <AlertMessage Type="danger" Message="@_errorMessage" />
+            }
+            <button class="w-100 btn btn-lg btn-primary" type="submit">
+                <span class="oi oi-account-login"></span> Login
+            </button>
+        </form>
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            @_errorMessage
+        }
+    </div>
+    
 
+</div>
 
 @code {
+    public string _password { get; set; }
+    public string rolePassword { get; set; }
+    private string _errorMessage { get; set; }
+    private GlobalState _globalState{ get; set; }
 
+    protected override void OnInitialized()
+    {
+        _globalState = new GlobalState();
+    }
+
+    private void HandleSubmit()
+    {
+        try
+        {
+            _errorMessage = "";
+            rolePassword = AuthService.Login(_password);
+            NavManager.NavigateTo(rolePassword == _globalState.adminPassword ? "/dashboard" : rolePassword == _globalState.staffPassword ? "/order" : "/");
+        }
+        catch (Exception e)
+        {
+            _errorMessage = e.Message;
+            Console.WriteLine(_errorMessage);
+        }
+    }
 }

@@ -58,7 +58,19 @@
     </ItemGroup>
 
     <ItemGroup>
+      <None Remove="Components\Layout\Admin\AdminNavBar.razor.css" />
+      <None Remove="Components\Layout\Staff\StaffLayout.razor.css" />
+      <None Remove="Components\Layout\Staff\StaffNavBar.razor.css" />
+    </ItemGroup>
+
+    <ItemGroup>
       <_ContentIncludedByDefault Remove="components\models\users.json" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="Components\Layout\Admin\AdminNavBar.razor.css" />
+      <Content Include="Components\Layout\Staff\StaffLayout.razor.css" />
+      <Content Include="Components\Layout\Staff\StaffNavBar.razor.css" />
     </ItemGroup>
 
     <ItemGroup>
