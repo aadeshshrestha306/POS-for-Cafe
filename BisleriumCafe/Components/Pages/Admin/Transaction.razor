@@ -1,0 +1,100 @@
+﻿@page "/dashboard"
+@layout BisleriumCafe.Components.Layout.Admin.AdminLayout
+@using MudBlazor
+@using BisleriumCafe.Components.Models
+@using System.IO
+@using System.Text.Json
+@using System
+
+<h1>Order Transactions</h1>
+
+<MudTextField Label="Search" @bind-Value="@SearchText" Variant="Variant.Outlined" Class="mb-4" />
+
+<MudTable Items="@filteredForecasts" Hover="true" Sortable="true">
+    <HeaderContent>
+        <MudTh SortLabel="Number" SortDirection="@GetSortDirection("Number")" SortChanged="OnSortChanged">Number</MudTh>
+        <MudTh SortLabel="Coffees" SortDirection="@GetSortDirection("Coffees")" Disabled="true">Coffees</MudTh>
+        <MudTh SortLabel="Addins" SortDirection="@GetSortDirection("Addins")" Disabled="true">Addins</MudTh>
+        <MudTh SortLabel="Date" SortDirection="@GetSortDirection("Date")" SortChanged="OnSortChanged">Date</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Number">@context.Number</MudTd>
+        <MudTd DataLabel="Coffees">@string.Join(", ", @context.Coffees.Select(coffee => $"{coffee.Name} ({coffee.Price})"))</MudTd>
+        <MudTd DataLabel="Addins">@string.Join(", ", @context.Addins.Select(addin => $"{addin.Name} ({addin.Price})"))</MudTd>
+        <MudTd DataLabel="Date">@context.Date.ToShortDateString()</MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private List<OrderTransaction> forecasts;
+    private List<OrderTransaction> filteredForecasts;
+    private string SearchText { get; set; }
+    private string SortColumn { get; set; }
+    private SortDirection SortDirection { get; set; } = SortDirection.Ascending;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Simulate asynchronous loading to demonstrate a loading indicator
+        await Task.Delay(500);
+
+        try
+        {
+            // Read JSON data from the file
+            string jsonContent = File.ReadAllText(Utils.GetOrderFilePath());
+
+            // Deserialize JSON data into a list of OrderTransaction
+            forecasts = JsonSerializer.Deserialize<List<OrderTransaction>>(jsonContent);
+            filteredForecasts = forecasts.ToList(); // Initialize filteredForecasts with all data
+        }
+        catch (Exception ex)
+        {
+            // Handle any errors during file reading or JSON deserialization
+            Console.WriteLine($"Error loading order data: {ex.Message}");
+            forecasts = new List<OrderTransaction>();
+            filteredForecasts = new List<OrderTransaction>();
+        }
+    }
+
+    private SortDirection? GetSortDirection(string column)
+    {
+        return SortColumn == column ? SortDirection : null;
+    }
+
+    private IEnumerable<OrderTransaction> SortData(IEnumerable<OrderTransaction> data, string column, SortDirection direction)
+    {
+        return column switch
+        {
+            "Number" => direction == SortDirection.Ascending ? data.OrderBy(item => item.Number) : data.OrderByDescending(item => item.Number),
+            "Date" => direction == SortDirection.Ascending ? data.OrderBy(item => item.Date) : data.OrderByDescending(item => item.Date),
+            _ => data,
+        };
+    }
+
+    private void OnSortChanged(string column)
+    {
+        SortDirection = SortDirection == SortDirection.Ascending ? SortDirection.Descending : SortDirection.Ascending;
+        SortColumn = column;
+        filteredForecasts = SortData(filteredForecasts, column, SortDirection).ToList();
+    }
+
+    private void SearchData()
+    {
+        if (!string.IsNullOrWhiteSpace(SearchText))
+        {
+            filteredForecasts = forecasts
+                .Where(order =>
+                    order.Number.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
+                    order.Coffees.Any(coffee => coffee.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase)) ||
+                    order.Addins.Any(addin => addin.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase)) ||
+                    order.Date.ToShortDateString().Contains(SearchText, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+        else
+        {
+            filteredForecasts = forecasts.ToList();
+        }
+    }
+}

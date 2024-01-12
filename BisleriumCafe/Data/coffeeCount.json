@@ -1,0 +1,38 @@
+[
+  {
+    "Name": "Espresso",
+    "Count": 1
+  },
+  {
+    "Name": "Latte",
+    "Count": 6
+  },
+  {
+    "Name": "Cappuccino",
+    "Count": 7
+  },
+  {
+    "Name": "Americano",
+    "Count": 20
+  },
+  {
+    "Name": "Mocha",
+    "Count": 10
+  },
+  {
+    "Name": "Cortado",
+    "Count": 3
+  },
+  {
+    "Name": "Flat White",
+    "Count": 5
+  },
+  {
+    "Name": "Macchiato",
+    "Count": 15
+  },
+  {
+    "Name": "Irish Coffee",
+    "Count": 2
+  }
+]

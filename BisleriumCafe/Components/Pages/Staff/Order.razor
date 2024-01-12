@@ -1,0 +1,586 @@
+﻿@page "/order"
+@layout BisleriumCafe.Components.Layout.Staff.StaffLayout
+
+@using BisleriumCafe.Components.Models
+@using BisleriumCafe.Components.Services
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using System.Diagnostics
+@using System.Collections.Generic
+
+
+<h3>Coffee Menu</h3>
+
+<div class="coffee-menu">
+    @foreach (var coffee in CoffeeList)
+    {
+        <div class="coffee-box">
+            <h4>@coffee.Name</h4>
+            <p>Price: @coffee.Price</p>
+            <div class="quantity">
+                <span @onclick="() => DecreaseQuantity(coffee)">-</span>
+                <span>@GetQuantity(coffee)</span>
+                <span @onclick="() => IncreaseQuantity(coffee)">+</span>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="addins">
+    <h3>Add-ins</h3>
+    @foreach (var addin in AddinsList)
+    {
+        <div class="addin-box">
+            <h4>@addin.Name</h4>
+            <p>Price: @addin.Price</p>
+            <div class="quantity">
+                <span @onclick="() => DecreaseAddinQuantity(addin)">-</span>
+                <span>@GetAddinQuantity(addin)</span>
+                <span @onclick="() => IncreaseAddinQuantity(addin)">+</span>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="order-summary">
+    <h3>Order Summary</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Quantity</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var coffee in CoffeeList)
+            {
+                <tr>
+                    <td>@coffee.Name</td>
+                    <td>@GetQuantity(coffee)</td>
+                    <td>@(GetQuantity(coffee) * coffee.Price)</td>
+                </tr>
+            }
+
+            @foreach (var addin in AddinsList)
+            {
+                <tr>
+                    <td>@addin.Name</td>
+                    <td>@GetAddinQuantity(addin)</td>
+                    <td>@(GetAddinQuantity(addin) * addin.Price)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <p>Total: @CalculateTotal()</p>
+</div>
+
+<div class="user-validation-form">
+    <h3>User Validation</h3>
+    <form @onsubmit="ValidateUser">
+        <label for="phoneNumber">Enter Phone Number:</label>
+        <input type="text" id="phoneNumber" @bind="userPhoneNumber" />
+        <button type="submit">Validate User</button>
+    </form>
+
+    @if (showNoUserAlert)
+    {
+        <div class="alert alert-danger" role="alert">
+            @_errorMessage
+        </div>
+    }
+</div>
+
+@code {
+    private List<Coffee> CoffeeList;
+    private Dictionary<string, int> CoffeeQuantities = new Dictionary<string, int>();
+    private List<Member> Members;
+    private List<Addin> AddinsList;
+    private Dictionary<string, int> AddinQuantities = new Dictionary<string, int>();
+    private string userPhoneNumber = "";
+    private string userPassword = "";
+    private bool userFound = false;
+    private bool showNoUserAlert = false;
+    private GlobalState _globalState { get; set; }
+    private string _errorMessage { get; set; }
+    private string Number { get; set; }
+    private List<CoffeeItem> Coffees { get; set; }
+    private DateTime Date { get; set; }
+    private List<AddinItem> Addins { get; set; }
+    private List<OrderService> _data = new List<OrderService>();
+
+    protected override void OnInitialized()
+    {
+        _globalState = new GlobalState();
+
+        try
+        {
+            string coffeeJson = File.ReadAllText(Utils.GetCoffeeFilePath());
+            CoffeeList = JsonSerializer.Deserialize<List<Coffee>>(coffeeJson);
+
+            foreach (var coffee in CoffeeList)
+            {
+                CoffeeQuantities[coffee.Name] = 0;
+            }
+
+            string addinsJson = File.ReadAllText(Utils.GetAddinsFilePath());
+            AddinsList = JsonSerializer.Deserialize<List<Addin>>(addinsJson);
+
+            foreach (var addin in AddinsList)
+            {
+                AddinQuantities[addin.Name] = 0;
+            }
+
+            string membersJson = File.ReadAllText(Utils.GetMemberFilePath());
+            Members = JsonSerializer.Deserialize<List<Member>>(membersJson);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading data: {ex.Message}");
+            CoffeeList = new List<Coffee>();
+            AddinsList = new List<Addin>();
+            Members = new List<Member>();
+        }
+    }
+
+    private void ValidateUser()
+    {
+        userFound = Members.Any(member => member.Number == userPhoneNumber);
+
+        if (userFound)
+        {
+            showNoUserAlert = true;
+            _errorMessage = "Congratulations! Order placed.";
+        }
+        else
+        {
+            // If the member number is not found
+            Members.Add(new Member { Number = userPhoneNumber });
+            string memberpath = Utils.GetMemberFilePath();
+            string memberjson = JsonSerializer.Serialize(Members);
+            File.WriteAllText(memberpath, memberjson);
+
+            showNoUserAlert = true;
+            _errorMessage = "No user! New member registered";
+        }
+
+        SubmitOrder();
+    }
+
+    private int GetQuantity(Coffee coffee)
+    {
+        return CoffeeQuantities.ContainsKey(coffee.Name) ? CoffeeQuantities[coffee.Name] : 0;
+    }
+
+    private void IncreaseQuantity(Coffee coffee)
+    {
+        CoffeeQuantities[coffee.Name]++;
+    }
+
+    private void DecreaseQuantity(Coffee coffee)
+    {
+        if (CoffeeQuantities[coffee.Name] > 0)
+        {
+            CoffeeQuantities[coffee.Name]--;
+        }
+    }
+
+    private decimal CalculateTotal()
+    {
+        decimal total = 0;
+
+        foreach (var coffee in CoffeeList)
+        {
+            total += GetQuantity(coffee) * coffee.Price;
+        }
+
+        foreach (var addin in AddinsList)
+        {
+            total += GetAddinQuantity(addin) * addin.Price;
+        }
+
+        return total;
+    }
+
+    private int GetAddinQuantity(Addin addin)
+    {
+        return AddinQuantities.ContainsKey(addin.Name) ? AddinQuantities[addin.Name] : 0;
+    }
+
+    private void IncreaseAddinQuantity(Addin addin)
+    {
+        AddinQuantities[addin.Name]++;
+    }
+
+    private void DecreaseAddinQuantity(Addin addin)
+    {
+        if (AddinQuantities[addin.Name] > 0)
+        {
+            AddinQuantities[addin.Name]--;
+        }
+    }
+
+    private void SubmitOrder()
+    {
+        try
+        {
+            var order = new OrderService
+                {
+                    Number = userPhoneNumber,
+                    Coffees = GetOrderedCoffees(),
+                    Addins = GetOrderedAddins(),
+                    Date = DateTime.Now.ToString("yyyy-MM-dd")
+                };
+
+            // Load existing orders
+            List<OrderService> existingOrders = LoadExistingOrders();
+
+            // Add the new order
+            existingOrders.Add(order);
+
+            // Serialize the updated list
+            string orderJson = JsonSerializer.Serialize(existingOrders);
+
+            // Write the updated content back to the file
+            string orderFilePath = Utils.GetOrderFilePath();
+            File.WriteAllText(orderFilePath, orderJson);
+
+            // Debugging information
+            Debug.WriteLine($"Order JSON: {orderJson}");
+            Debug.WriteLine($"Order File Path: {orderFilePath}");
+
+            SaveOrderReport(order);
+
+            UpdateItemCounts(order.Coffees, Utils.GetCoffeeCountFilePath());
+            UpdateItemCounts(order.Addins, Utils.GetAddinCountFilePath());
+
+            Debug.WriteLine("Saved to Order.json");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error submitting order: {ex.Message}");
+        }
+
+        ClearOrder();
+    }
+
+    private void SaveOrderReport(OrderService order)
+    {
+        try
+        {
+            // Load existing OrderReports
+            List<OrderReport> orderReports = LoadOrderReports();
+
+            // Check if the user already has an OrderReport
+            OrderReport existingReport = orderReports.FirstOrDefault(report => report.Number == userPhoneNumber);
+
+            if (existingReport != null)
+            {
+                // Update existing report
+                existingReport.Purchases += 1;
+
+                // Check for daily streak
+                UpdateDailyStreak(existingReport, order);
+
+                // Check for free coffee eligibility
+                CheckFreeCoffeeEligibility(existingReport);
+            }
+            else
+            {
+                // Create a new report
+                OrderReport newReport = new OrderReport
+                    {
+                        Number = userPhoneNumber,
+                        Purchases = 1,
+                        DailyStreak = 1, // Assuming the customer starts with a streak of 1 on the first purchase
+                        FreeCoffeeCount = 0,
+                        DiscountPercentage = 0
+                    };
+
+                // Add the new report
+                orderReports.Add(newReport);
+            }
+
+            // Serialize the updated list
+            string reportJson = JsonSerializer.Serialize(orderReports);
+
+            // Write the updated content back to the file
+            string reportFilePath = Utils.GetOrderReportFilePath();
+            File.WriteAllText(reportFilePath, reportJson);
+
+            // Debugging information
+            Debug.WriteLine($"OrderReport JSON: {reportJson}");
+            Debug.WriteLine($"OrderReport File Path: {reportFilePath}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving OrderReport: {ex.Message}");
+        }
+    }
+
+    private List<OrderReport> LoadOrderReports()
+    {
+        try
+        {
+            string reportFilePath = Utils.GetOrderReportFilePath();
+            if (File.Exists(reportFilePath))
+            {
+                string existingReportJson = File.ReadAllText(reportFilePath);
+                return JsonSerializer.Deserialize<List<OrderReport>>(existingReportJson) ?? new List<OrderReport>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading existing OrderReports: {ex.Message}");
+        }
+
+        return new List<OrderReport>();
+    }
+
+    private void UpdateDailyStreak(OrderReport report, OrderService order)
+    {
+        DateTime orderDate = DateTime.Parse(order.Date);
+        DateTime previousOrderDate = DateTime.Now; // Set a default value for the previous order date
+
+        // Check if there are previous orders
+        if (report.LastPurchaseDate != null)
+        {
+            previousOrderDate = DateTime.Parse(report.LastPurchaseDate);
+        }
+
+        // Check if the current order is on the next day
+        if (orderDate.Date == previousOrderDate.Date.AddDays(1))
+        {
+            report.DailyStreak += 1;
+        }
+        else
+        {
+            // Reset the streak if the order is not on the next day
+            report.DailyStreak = 1;
+        }
+
+        // Update the last purchase date
+        report.LastPurchaseDate = order.Date;
+    }
+
+    private void CheckFreeCoffeeEligibility(OrderReport report)
+    {
+        // Check for free coffee eligibility (assuming 10 purchases trigger a free coffee)
+        if (report.Purchases % 10 == 0)
+        {
+            report.FreeCoffeeCount += 1;
+        }
+
+        // Check for 22 days straight to get a 10% discount
+        if (report.DailyStreak >= 22)
+        {
+            report.DiscountPercentage = 10;
+        }
+        else
+        {
+            report.DiscountPercentage = 0; // Reset the discount if the streak is broken
+        }
+    }
+
+    private List<OrderService> LoadExistingOrders()
+    {
+        try
+        {
+            string orderFilePath = Utils.GetOrderFilePath();
+            if (File.Exists(orderFilePath))
+            {
+                string existingOrderJson = File.ReadAllText(orderFilePath);
+                return JsonSerializer.Deserialize<List<OrderService>>(existingOrderJson) ?? new List<OrderService>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading existing orders: {ex.Message}");
+        }
+
+        return new List<OrderService>();
+    }
+
+    private List<CoffeeItem> GetOrderedCoffees()
+    {
+        var orderedCoffees = new List<CoffeeItem>();
+
+        foreach (var coffee in CoffeeList)
+        {
+            int quantity = GetQuantity(coffee);
+
+            if (quantity > 0)
+            {
+                var coffeeObject = new CoffeeItem()
+                    {
+                        Name = coffee.Name,
+                        Price = coffee.Price * quantity // Multiply by quantity to get the total price
+                    };
+
+                orderedCoffees.Add(coffeeObject);
+            }
+        }
+
+        return orderedCoffees;
+    }
+
+    private List<AddinItem> GetOrderedAddins()
+    {
+        var orderedAddins = new List<AddinItem>();
+
+        foreach (var addin in AddinsList)
+        {
+            int quantity = GetAddinQuantity(addin);
+
+            if (quantity > 0)
+            {
+                var addinObject = new AddinItem()
+                    {
+                        Name = addin.Name,
+                        Price = addin.Price * quantity // Multiply by quantity to get the total price
+                    };
+
+                orderedAddins.Add(addinObject);
+            }
+        }
+
+        return orderedAddins;
+    }
+
+    private void UpdateItemCounts(List<CoffeeItem> coffees, string coffeeCountFilePath)
+    {
+        try
+        {
+            // Load existing counts
+            List<ItemCount> coffeeCounts = LoadCoffeeCounts(coffeeCountFilePath);
+
+            foreach (var coffee in coffees)
+            {
+                // Check if the coffee already has a count
+                ItemCount existingCount = coffeeCounts.FirstOrDefault(count => count.Name == coffee.Name);
+
+                if (existingCount != null)
+                {
+                    // Update existing count
+                    existingCount.Count += 1;
+                }
+                else
+                {
+                    // Create a new count
+                    ItemCount newCount = new ItemCount
+                        {
+                            Name = coffee.Name,
+                            Count = 1
+                        };
+
+                    // Add the new count
+                    coffeeCounts.Add(newCount);
+                }
+            }
+
+            // Serialize the updated list
+            string countJson = JsonSerializer.Serialize(coffeeCounts);
+
+            // Write the updated content back to the file
+            File.WriteAllText(coffeeCountFilePath, countJson);
+
+            // Debugging information
+            Debug.WriteLine($"Coffee Count JSON: {countJson}");
+            Debug.WriteLine($"Coffee Count File Path: {coffeeCountFilePath}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating coffee counts: {ex.Message}");
+        }
+    }
+
+    private List<ItemCount> LoadCoffeeCounts(string coffeeCountFilePath)
+    {
+        try
+        {
+            if (File.Exists(coffeeCountFilePath))
+            {
+                string existingCountJson = File.ReadAllText(coffeeCountFilePath);
+                return JsonSerializer.Deserialize<List<ItemCount>>(existingCountJson) ?? new List<ItemCount>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading existing coffee counts: {ex.Message}");
+        }
+
+        return new List<ItemCount>();
+    }
+
+    private void UpdateItemCounts(List<AddinItem> addins, string addinCountFilePath)
+    {
+        try
+        {
+            // Load existing counts
+            List<ItemCount> addinCounts = LoadAddinCounts(addinCountFilePath);
+
+            foreach (var addin in addins)
+            {
+                // Check if the addin already has a count
+                ItemCount existingCount = addinCounts.FirstOrDefault(count => count.Name == addin.Name);
+
+                if (existingCount != null)
+                {
+                    // Update existing count
+                    existingCount.Count += 1;
+                }
+                else
+                {
+                    // Create a new count
+                    ItemCount newCount = new ItemCount
+                        {
+                            Name = addin.Name,
+                            Count = 1
+                        };
+
+                    // Add the new count
+                    addinCounts.Add(newCount);
+                }
+            }
+
+            // Serialize the updated list
+            string countJson = JsonSerializer.Serialize(addinCounts);
+
+            // Write the updated content back to the file
+            File.WriteAllText(addinCountFilePath, countJson);
+
+            // Debugging information
+            Debug.WriteLine($"Addin Count JSON: {countJson}");
+            Debug.WriteLine($"Addin Count File Path: {addinCountFilePath}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating addin counts: {ex.Message}");
+        }
+    }
+
+    private List<ItemCount> LoadAddinCounts(string addinCountFilePath)
+    {
+        try
+        {
+            if (File.Exists(addinCountFilePath))
+            {
+                string existingCountJson = File.ReadAllText(addinCountFilePath);
+                return JsonSerializer.Deserialize<List<ItemCount>>(existingCountJson) ?? new List<ItemCount>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading existing addin counts: {ex.Message}");
+        }
+
+        return new List<ItemCount>();
+    }
+
+
+    private void ClearOrder()
+    {
+        CoffeeQuantities.Clear();
+        AddinQuantities.Clear();
+    }
+}

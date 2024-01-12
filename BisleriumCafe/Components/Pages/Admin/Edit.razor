@@ -1,0 +1,192 @@
+﻿@page "/edit"
+@layout BisleriumCafe.Components.Layout.Admin.AdminLayout
+@using BisleriumCafe.Components.Models
+@using BisleriumCafe.Components.Services
+@using System.Diagnostics
+@using System.Text.Json
+
+<h1>Edit Prices</h1>
+
+@if (coffees == null || addins == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>Price</th>
+                <th>Edit</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var coffee in coffees)
+            {
+                <tr>
+                    <td>@coffee.Name</td>
+                    <td>@coffee.Price</td>
+                    <td><button @onclick="() => ShowEditModal(coffee)">Edit</button></td>
+                </tr>
+            }
+
+            @foreach (var addin in addins)
+            {
+                <tr>
+                    <td>@addin.Name</td>
+                    <td>@addin.Price</td>
+                    <td><button @onclick="() => ShowEditModal(addin)">Edit</button></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="modal" style="display: @(showEditModal ? "block" : "none")">
+        <div class="modal-content">
+            <span class="close" @onclick="CloseEditModal">&times;</span>
+            <label>New Price:</label>
+            <input type="number" @bind="newPrice" />
+            <button @onclick="() => UpdatePrice(selectedProduct)">Update</button>
+        </div>
+    </div>
+
+    <button @onclick="ShowConfirmationModal">Confirm Update</button>
+
+    <div class="modal" style="display: @(showConfirmationModal ? "block" : "none")">
+        <div class="modal-content">
+            <span class="close" @onclick="CloseConfirmationModal">&times;</span>
+            <label>Password:</label>
+            <input type="password" @bind="password" />
+            <button @onclick="ConfirmUpdate">Confirm</button>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Coffee> coffees;
+    private List<Addin> addins;
+    private bool showEditModal = false;
+    private bool showConfirmationModal = false;
+    private decimal newPrice;
+    private string password;
+    private Product selectedProduct; // To store the selected product for editing
+
+    private string coffeeFilePath = Utils.GetCoffeeFilePath();
+    private string addinFilePath = Utils.GetAddinsFilePath();
+    private string userFilePath = Utils.GetAppUsersFilePath();
+
+    private string staffPassword = Utils.GetStaffPassword();
+    private string adminPassword = Utils.GetAdminPassword();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load coffee and addin data from JSON files
+        coffees = LoadCoffeeData();
+        addins = LoadAddinData();
+    }
+
+    private List<Coffee> LoadCoffeeData()
+    {
+        try
+        {
+            var coffeeJson = File.ReadAllText(coffeeFilePath);
+            return JsonSerializer.Deserialize<List<Coffee>>(coffeeJson) ?? new List<Coffee>();
+        }
+        catch (Exception)
+        {
+            // Handle exceptions (e.g., log, show error message)
+            return new List<Coffee>();
+        }
+    }
+
+    private List<Addin> LoadAddinData()
+    {
+        try
+        {
+            var addinJson = File.ReadAllText(addinFilePath);
+            return JsonSerializer.Deserialize<List<Addin>>(addinJson) ?? new List<Addin>();
+        }
+        catch (Exception ex)
+        {
+            // Handle exceptions (e.g., log, show error message)
+            return new List<Addin>();
+        }
+    }
+
+    private void ShowEditModal(Product product)
+    {
+        selectedProduct = product; // Store the selected product for editing
+        newPrice = product.Price;
+        showEditModal = true;
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+    }
+
+    private void UpdatePrice(Product selectedProduct)
+    {
+        // Update the price of the selected product
+        selectedProduct.Price = newPrice;
+
+        // Save changes to the JSON file
+        UpdateJsonFile(coffeeFilePath, coffees);
+        UpdateJsonFile(addinFilePath, addins);
+
+        // Close the edit modal
+        CloseEditModal();
+    }
+
+    private void ShowConfirmationModal()
+    {
+        showConfirmationModal = true;
+    }
+
+    private void CloseConfirmationModal()
+    {
+        showConfirmationModal = false;
+    }
+
+    private void ConfirmUpdate()
+    {
+        // Check the password
+        if (password == adminPassword)
+        {
+            // Update the coffee and addin JSON files with new prices
+            UpdateJsonFile(coffeeFilePath, coffees);
+            UpdateJsonFile(addinFilePath, addins);
+            Debug.WriteLine("Json Updated");
+        }
+        else
+        {
+            Debug.WriteLine("Error");            // You might want to show an error message
+        }
+
+        showConfirmationModal = false;
+    }
+
+    private void UpdateJsonFile<T>(string filePath, List<T> data)
+    {
+        try
+        {
+            var jsonData = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(filePath, jsonData);
+        }
+        catch (Exception ex)
+        {
+            // Handle exceptions (e.g., log, show error message)
+        }
+    }
+
+    private class Product
+    {
+        public string Name { get; set; }
+        public decimal Price { get; set; }
+    }
+
+    private class Coffee : Product { }
+
+    private class Addin : Product { }
+}

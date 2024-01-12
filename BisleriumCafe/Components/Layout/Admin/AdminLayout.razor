@@ -1,0 +1,25 @@
+﻿@inherits LayoutComponentBase
+@using MudBlazor
+<MudThemeProvider/>
+<MudDialogProvider/>
+<MudSnackbarProvider/>
+
+
+<div class="page">
+    <div class="sidebar">
+        <AdminNavBar />
+    </div>
+
+    <main>
+        <div class="top-row px-4">
+            <p>Date: @currentDate.ToString("yyyy-MM-dd")</p>
+        </div>
+        @code {
+            private DateTime currentDate = DateTime.Now;
+        }
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>

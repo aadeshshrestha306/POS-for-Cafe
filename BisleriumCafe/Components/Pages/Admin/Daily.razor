@@ -1,0 +1,200 @@
+﻿@page "/daily"
+@layout BisleriumCafe.Components.Layout.Admin.AdminLayout
+@using MudBlazor
+@using BisleriumCafe.Components.Models
+@using System.IO
+@using System.Text.Json
+@using System
+@using PdfSharp.Fonts
+@using PdfSharp.Pdf
+@using PdfSharp.Snippets.Font
+@inject IJSRuntime JSRuntime
+
+
+<h1>Daily Order Summary</h1>
+
+<MudButton OnClick="GenerateDailyReport" Variant="Variant.Filled">Generate Daily Report</MudButton>
+
+
+<!-- Main Order Transactions Table -->
+<MudTable Items="@forecasts" Hover="true" Sortable="false">
+    <!-- Header Content -->
+    <HeaderContent>
+        <MudTh>Number</MudTh>
+        <MudTh>Coffees</MudTh>
+        <MudTh>Addins</MudTh>
+        <MudTh>Date</MudTh>
+    </HeaderContent>
+    <!-- Row Template -->
+    <RowTemplate>
+        <MudTd DataLabel="Number">@context.Number</MudTd>
+        <MudTd DataLabel="Coffees">@string.Join(", ", @context.Coffees.Select(coffee => $"{coffee.Name} ({coffee.Price})"))</MudTd>
+        <MudTd DataLabel="Addins">@string.Join(", ", @context.Addins.Select(addin => $"{addin.Name} ({addin.Price})"))</MudTd>
+        <MudTd DataLabel="Date">@context.Date.ToShortDateString()</MudTd>
+    </RowTemplate>
+</MudTable>
+
+<!-- Coffee Items Table -->
+<h2>Top 5 Coffee Items</h2>
+<MudTable Items="@Top5CoffeeItems" Hover="true" Sortable="false">
+    <HeaderContent>
+        <MudTh>Item</MudTh>
+        <MudTh>Count</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.Name</MudTd>
+        <MudTd>@context.Count</MudTd>
+    </RowTemplate>
+</MudTable>
+
+<!-- Addin Items Table -->
+<h2>Top 5 Addin Items</h2>
+<MudTable Items="@Top5AddinItems" Hover="true" Sortable="false">
+    <HeaderContent>
+        <MudTh>Item</MudTh>
+        <MudTh>Count</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.Name</MudTd>
+        <MudTd>@context.Count</MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private List<OrderTransaction> forecasts;
+    private List<ItemCount> Top5CoffeeItems { get; set; }
+    private List<ItemCount> Top5AddinItems { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Simulate asynchronous loading to demonstrate a loading indicator
+        await Task.Delay(500);
+
+        try
+        {
+            // Read JSON data from the file
+            string jsonContent = File.ReadAllText(Utils.GetOrderFilePath());
+
+            // Deserialize JSON data into a list of OrderTransaction
+            forecasts = JsonSerializer.Deserialize<List<OrderTransaction>>(jsonContent);
+
+            // Load existing ItemCounts
+            List<ItemCount> coffeeCounts = LoadItemCounts(Utils.GetCoffeeCountFilePath());
+            List<ItemCount> addinCounts = LoadItemCounts(Utils.GetAddinCountFilePath());
+
+            // Get top 5 coffee and addin items
+            Top5CoffeeItems = coffeeCounts.OrderByDescending(item => item.Count).Take(5).ToList();
+            Top5AddinItems = addinCounts.OrderByDescending(item => item.Count).Take(5).ToList();
+        }
+        catch (Exception ex)
+        {
+            // Handle any errors during file reading or JSON deserialization
+            Console.WriteLine($"Error loading order data: {ex.Message}");
+            forecasts = new List<OrderTransaction>();
+            Top5CoffeeItems = new List<ItemCount>();
+            Top5AddinItems = new List<ItemCount>();
+        }
+    }
+
+    private List<ItemCount> LoadItemCounts(string countFilePath)
+    {
+        try
+        {
+            if (File.Exists(countFilePath))
+            {
+                string existingCountJson = File.ReadAllText(countFilePath);
+                return JsonSerializer.Deserialize<List<ItemCount>>(existingCountJson) ?? new List<ItemCount>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading existing item counts: {ex.Message}");
+        }
+
+        return new List<ItemCount>();
+    }
+
+    private void GenerateDailyReport()
+    {
+        if (Capabilities.Build.IsCoreBuild)
+            GlobalFontSettings.FontResolver = new FailsafeFontResolver();
+
+        // Create a new PDF document
+        var document = new PdfDocument();
+
+        // Add a page to the document
+        PdfPage page = document.AddPage();
+        XGraphics gfx = XGraphics.FromPdfPage(page);
+
+        // Set font and size
+        var font = new XFont("Arial", 12, XFontStyleEx.Bold);
+
+        // Load existing ItemCounts from JSON files
+        List<ItemCount> coffeeCounts = LoadItemCounts(Utils.GetCoffeeCountFilePath());
+        List<ItemCount> addinCounts = LoadItemCounts(Utils.GetAddinCountFilePath());
+
+        // Get top 5 coffee and addin items
+        List<ItemCount> top5CoffeeItems = coffeeCounts.OrderByDescending(item => item.Count).Take(5).ToList();
+        List<ItemCount> top5AddinItems = addinCounts.OrderByDescending(item => item.Count).Take(5).ToList();
+
+        // Generate content for the daily report
+        string dailyReportContent = GetReportContent("Daily", top5CoffeeItems, top5AddinItems);
+
+        // Draw content on the pages using a table layout
+        DrawTable(gfx, font, dailyReportContent, 10, 10, document);
+
+        // Save or display the PDF as needed (you can save it to a file or return it as a response to the user)
+        document.Save("E:\\DailyReport.pdf");
+    }
+
+    private void DrawTable(XGraphics gfx, XFont font, string tableContent, double x, double y, PdfDocument document)
+    {
+        // Define table layout
+        double tableWidth = 300;
+        double cellPadding = 5;
+        double rowHeight = font.GetHeight() + 2 * cellPadding;
+
+        // Split content into rows
+        string[] rows = tableContent.Split('\n');
+
+        // Track the current y-coordinate
+        double currentY = y;
+
+        // Draw table rows
+        for (int i = 0; i < rows.Length; i++)
+        {
+            if (currentY + i * rowHeight > document.Pages[document.PageCount - 1].Height)
+            {
+                // If content exceeds page height, add a new page
+                PdfPage newPage = document.AddPage();
+                gfx = XGraphics.FromPdfPage(newPage);
+                currentY = 10;
+            }
+
+            gfx.DrawString(rows[i], font, XBrushes.Black, x, currentY + i * rowHeight);
+        }
+    }
+
+    private string GetReportContent(string reportType, List<ItemCount> top5CoffeeItems, List<ItemCount> top5AddinItems)
+    {
+        // Generate content for the report (you can format it as needed)
+        string top5CoffeeContent = GenerateItemContent("Top 5 Coffee Items", top5CoffeeItems);
+        string top5AddinContent = GenerateItemContent("Top 5 Addin Items", top5AddinItems);
+
+        return $@"
+        {reportType} Report - {DateTime.Now.ToShortDateString()}
+
+        Top 5 Coffee Items:
+        {top5CoffeeContent}
+
+        Top 5 Addin Items:
+        {top5AddinContent}
+    ";
+    }
+
+    private string GenerateItemContent(string title, List<ItemCount> items)
+    {
+        // Generate content for the items
+        return $"{title}:\n{string.Join("\n", items.Select(item => $"{item.Name} - Count: {item.Count}"))}\n\n";
+    }
+}
